@@ -17,7 +17,7 @@ defmodule Todo.ProcessRegistry do
   end
 
   def whereis_name(key) do
-    GenServer.call(:process_registry, {:whereis_name, key})
+    read_process_registry(key)
   end
 
   def send(key, message) do
@@ -30,48 +30,46 @@ defmodule Todo.ProcessRegistry do
   end
 
   def init(_) do
-    {:ok, %{}}
+    :ets.new(:process_registry, [:named_table])
+    {:ok, nil}
   end
 
-  def handle_call({:register_name, key, pid}, _, process_registry) do
-    case Map.get(process_registry, key) do
-      nil ->
+  def handle_call({:register_name, key, pid}, _, state) do
+    case read_process_registry(key) do
+      :undefined ->
         Process.monitor(pid)
-        {:reply, :yes, Map.put(process_registry, key, pid)}
+        register_pid(key, pid)
+        {:reply, :yes, state}
+
       _ ->
-        {:reply, :no, process_registry}
+        {:reply, :no, state}
+    end
+
+  end
+
+  def handle_call({:unregister_name, key}, _, state) do
+    :ets.delete(:process_registry, key)
+    {:reply, key, state}
+  end
+
+  def handle_info({:DOWN, _, :process, pid, _}, state) do
+    IO.puts "handling DOWN message for pid: #{inspect pid}"
+    :ets.match_delete(:process_registry, {:_, pid})
+    {:noreply, state}
+  end
+
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
+
+  defp read_process_registry(key) do
+    case :ets.lookup(:process_registry, key) do
+      [{^key, pid}] -> pid
+      _ -> :undefined
     end
   end
 
-  def handle_call({:unregister_name, key}, _, process_registry) do
-    {:reply, key, Map.delete(process_registry, key)}
+  defp register_pid(key, pid) do
+    :ets.insert(:process_registry, {key, pid})
   end
-
-  def handle_call({:whereis_name, key}, _, process_registry) do
-    {
-      :reply,
-      Map.get(process_registry, key, :undefined),
-      process_registry
-    }
-  end
-
-  def handle_info({:DOWN, _, :process, pid, _}, process_registry) do
-    IO.puts "handling DOWN message for pid: #{inspect pid}"
-    {:noreply, deregister_pid(process_registry, pid)}
-  end
-
-  def deregister_pid(process_registry, pid) do
-    Enum.reduce(
-      process_registry,
-      process_registry,
-      &(remove_pid(&1, &2, pid))
-    )
-  end
-
-  defp remove_pid({registered_alias, registered_process}, registry_acc, pid)
-    when registered_process == pid do
-      Map.delete(registry_acc, registered_alias)
-  end
-
-  defp remove_pid(_, registry_acc, _), do: registry_acc
 end

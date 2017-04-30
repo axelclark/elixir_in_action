@@ -16,7 +16,7 @@ defmodule Todo.Mixfile do
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
     [
-      extra_applications: [:logger, :gproc, :cowboy, :plug],
+      extra_applications: [:logger, :cowboy, :plug],
       mod: {Todo.Application, []}
 
     ]
@@ -33,7 +33,6 @@ defmodule Todo.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:gproc, "~> 0.6.0"},
       {:plug, "~> 1.3.0"},
       {:cowboy, "~> 1.1.0"}
     ]

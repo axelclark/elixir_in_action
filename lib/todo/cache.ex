@@ -8,11 +8,11 @@ defmodule Todo.Cache do
   end
 
   def server_process(todo_list_name) do
-    case Todo.Server.whereis(todo_list_name) do
-      :undefined ->
+    case Todo.Server.lookup(todo_list_name) do
+      [] ->
         GenServer.call(:todo_cache, {:server_process, todo_list_name})
 
-      pid -> pid
+      [{pid, _}] -> pid
     end
   end
 
@@ -21,8 +21,8 @@ defmodule Todo.Cache do
   end
 
   def handle_call({:server_process, todo_list_name}, _, state) do
-    todo_server_pid = case Todo.Server.whereis(todo_list_name) do
-      :undefined ->
+    todo_server_pid = case Todo.Server.lookup(todo_list_name) do
+      [] ->
         {:ok, pid} = Todo.ServerSupervisor.start_child(todo_list_name)
         pid
 

@@ -15,8 +15,8 @@ defmodule Todo.Server do
     {:via, Registry, {:process_registry, {:todo_server, name}}}
   end
 
-  def whereis(name) do
-    Registry.whereis_name({:process_registry, {:todo_server, name}})
+  def lookup(name) do
+    Registry.lookup(:process_registry, {:todo_server, name})
   end
 
   def add_entry(name, new_entry) do

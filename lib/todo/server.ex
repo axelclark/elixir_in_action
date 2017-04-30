@@ -12,19 +12,19 @@ defmodule Todo.Server do
   end
 
   defp via_tuple(name) do
-    {:via, :gproc, {:n, :l, {:todo_server, name}}}
+    {:via, Registry, {:process_registry, {:todo_server, name}}}
   end
 
   def whereis(name) do
-    :gproc.whereis_name({:n, :l, {:todo_server, name}})
+    Registry.whereis_name({:process_registry, {:todo_server, name}})
   end
 
-  def add_entry(pid, new_entry) do
-    GenServer.cast(pid, {:add_entry, new_entry})
+  def add_entry(name, new_entry) do
+    GenServer.cast(via_tuple(name), {:add_entry, new_entry})
   end
 
-  def entries(pid, date) do
-    GenServer.call(pid, {:entries, date})
+  def entries(name, date) do
+    GenServer.call(via_tuple(name), {:entries, date})
   end
 
   def init(todo_list_name) do
